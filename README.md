@@ -2,7 +2,7 @@
 
 Coyote is a standalone C# post-exploitation implant for maintaining access to compromised Windows infrastructure during red team engagements.
 
-* Bypasses application whitelisting such as Microsoft AppLocker using InstallUtil.exe (see [MITRE ATT&CK ID: T1218.004](https://attack.mitre.org/techniques/T1218/004/))
+* Bypasses application whitelisting (eg AppLocker) using InstallUtil.exe (see [MITRE ATT&CK ID: T1218.004](https://attack.mitre.org/techniques/T1218/004/))
 * Retrieves commands from operator via recursive DNS tunnel (see [MITRE ATT&CK ID: T1071.004](https://attack.mitre.org/techniques/T1071/004/))
 * Small footprint in memory and on the network
 
@@ -43,6 +43,7 @@ We create a TXT record on our DNS server as follows:
 This record is saved and from our laptop we then confirm it is active:
 
 `user@laptop:~$ host -t txt updates.tartaruslabs.com`
+
 `updates.tartaruslabs.com descriptive text "Y2FsYy5leGU="`
 
 In coyote.cs we set the value of c2domain to "updates.tartaruslabs.com" and then compile it.
