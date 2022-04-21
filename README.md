@@ -49,5 +49,5 @@ In coyote.cs we set the value of c2domain to "updates.tartaruslabs.com" and then
 
 We execute the implant and sure enough calculator opens. 
 
-![Coyote screenshot](https://github.com/TartarusLabs/Coyote/blob/master/screenshot.jpg?raw=true)
+![Coyote screenshot](https://github.com/TartarusLabs/Coyote/blob/main/screenshot.jpg?raw=true)
 
