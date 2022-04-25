@@ -3,7 +3,7 @@
 Coyote is a standalone C# post-exploitation implant for maintaining access to compromised Windows infrastructure during red team engagements.
 
 * Bypasses application whitelisting (eg AppLocker) using InstallUtil.exe (see [MITRE ATT&CK ID: T1218.004](https://attack.mitre.org/techniques/T1218/004/))
-* Retrieves commands from operator via recursive DNS tunnel (see [MITRE ATT&CK ID: T1071.004](https://attack.mitre.org/techniques/T1071/004/))
+* Retrieves encrypted commands from operator via recursive DNS tunnel (see [MITRE ATT&CK ID: T1071.004](https://attack.mitre.org/techniques/T1071/004/))
 * Small footprint in memory and on the network
 
 The basic premise is for the red team to leave this tiny DLL behind on a compromised Windows system and have it occasionally poll the DNS TXT record of a legitimate looking FQDN to check for instructions. When needed, the TXT record can contain a simple powershell one liner to spawn an interactive reverse shell out to a VPS, or the first stage of something more sophisticated, as per the operator's requirements. Coyote is not used for interactive control of the compromised system, rather to maintain access and spawn some other tool (a reverse shell, meterpreter etc) as required.
@@ -30,23 +30,27 @@ One way that will serve as an example is to hide the DLL in a user's AppData fol
 
 This means that every day at 0800 the built-in InstallUtil.exe will import and run the DLL's uninstall function, which will then do a recursive DNS lookup to check if a command is currently encoded in the TXT record, and if so execute it. This can hopefully remain undetected by the blue team until needed and act as a backup to any other methods being used to maintain remote access to the network.
 
-To leave a command to be executed (generally this will be used to spawn an interactive reverse shell), base64 encode the exact string that you would have typed into the command line and place it in a TXT record on the subdomain that you set when you compiled the implant. Next time the implant calls home it will be executed.
+To leave a command to be executed (generally this will be used to spawn an interactive reverse shell), use the included encrypt-payload.ps1 powershell script. Give it the exact string that you would have typed into the command line and copy the encrypted output into a TXT record on the subdomain that you set when you compiled the implant. Next time the implant calls home the TXT record will be decrypted and executed. Any network security product that happens to be examining DNS traffic (many networks don't even do this at all) will not be able to see the raw payload on the wire.
 
 ### Proof-of-concept
 
-We base64 encode the string calc.exe to get Y2FsYy5leGU=
+We use the encrypt-payload.ps1 powershell script to XOR our payload of "calc.exe" with our key of "pizza" and base64 encode the result: 
 
-We create a TXT record on our DNS server as follows:
+![Coyote payload encryption screenshot](https://github.com/TartarusLabs/Coyote/blob/main/screenshot2.jpg?raw=true)
 
-`TXT	updates.tartaruslabs.com	Y2FsYy5leGU=`
+Using the output of the powershell script we create a TXT record on our DNS server as follows:
 
-This record is saved and from our laptop we then confirm it is active:
+`updates.tartaruslabs.com	TXT	EwgWGU8VER8=	7200`
+
+It is best to set a fairly low TTL so that you don't have to wait too long each time you modify the TXT record for it to be dropped from the cache on the compromised network's own DNS server and refreshed from the authoritative DNS server. In this case we set the TTL to 7200 seconds, or 2 hours.
+
+This record is saved and from a Linux laptop we then confirm it is active:
 
 `user@laptop:~$ host -t txt updates.tartaruslabs.com`
 
-`updates.tartaruslabs.com descriptive text "Y2FsYy5leGU="`
+`updates.tartaruslabs.com descriptive text "EwgWGU8VER8="`
 
-In coyote.cs we set the value of c2domain to "updates.tartaruslabs.com" and then compile it.
+In coyote.cs we set the value of c2domain to "updates.tartaruslabs.com" and XORkey to "pizza" then compile it on our Windows VM.
 
 We execute the implant and sure enough calculator opens. 
 
